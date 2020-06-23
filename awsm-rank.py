@@ -22,13 +22,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("url", type=str)
     parser.add_argument("--token", type=str)
+    parser.add_argument("--limit", type=int)
     args = parser.parse_args()
     url = args.url
     token = args.token
+    limit = args.limit
 
     projects = get_linked_projects(url)
     repo_endpoints = get_repo_api_endpoints(projects)
     ranking = asyncio.run(get_stargazer_counts(repo_endpoints, token=token))
+    if limit:
+        ranking = ranking[:limit]
     print_ranking(ranking)
 
 
