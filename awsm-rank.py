@@ -24,7 +24,7 @@ def main():
     parser.add_argument("url", type=str)
     parser.add_argument("--token", type=str)
     parser.add_argument("--limit", type=int)
-    parser.add_argument("--debug", type=bool)
+    parser.add_argument("--debug", dest='debug', action='store_true')
     args = parser.parse_args()
     if args.debug:
         logger.setLevel (logging.DEBUG)
