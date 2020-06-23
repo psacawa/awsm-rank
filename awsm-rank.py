@@ -13,8 +13,9 @@ import requests
 from bs4 import BeautifulSoup
 from tabulate import tabulate
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
+logger = logging.getLogger()
+logger.setLevel (logging.INFO)
+logger.addHandler (logging.StreamHandler (sys.stdout))
 
 def main():
     """Scrape and parse a github page. For all linked github projects, determine the number
@@ -23,15 +24,15 @@ def main():
     parser.add_argument("url", type=str)
     parser.add_argument("--token", type=str)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--debug", type=bool)
     args = parser.parse_args()
-    url = args.url
-    token = args.token
-    limit = args.limit
+    if args.debug:
+        logger.setLevel (logging.DEBUG)
 
-    projects = get_linked_projects(url)
+    projects = get_linked_projects(args.url)
     repo_endpoints = get_repo_api_endpoints(projects)
-    ranking = asyncio.run(get_stargazer_counts(repo_endpoints, token=token))
-    if limit:
+    ranking = asyncio.run(get_stargazer_counts(repo_endpoints, token=args.token))
+    if args.limit:
         ranking = ranking[:limit]
     print_ranking(ranking)
 
@@ -59,16 +60,16 @@ def get_repo_api_endpoints(projects: List[re.Match]):
     return [
         f"https://api.github.com/repos/{group['user']}/{group['repo']}"
         for group in groups
-        if group["user"] != "site"
+        if group["user"] not in["apps", "site"]
     ]
 
 
 async def get_ranking_data(session: ClientSession, repo_url):
     """Get individual repos data"""
-    logging.debug(f"beginning request to {repo_url}")
+    logger.debug(f"beginning request to {repo_url}")
     try:
         async with session.get(repo_url,) as response:
-            logging.debug(f"get response to {repo_url}")
+            logger.debug(f"get response to {repo_url}")
             data = await response.text()
             data = json.loads(data)
             return {
@@ -77,17 +78,18 @@ async def get_ranking_data(session: ClientSession, repo_url):
                 "stargazers": data["stargazers_count"],
             }
     except KeyError as e:
-        logging.error("Response malformed - authentication failed?")
+        logger.error(f"Response malformed at {repo_url}- authentication failed?")
     except ClientError:
-        logging.error("Request failed")
+        logger.error(f"Request failed at {repo_url}")
 
 
 async def get_stargazer_counts(repos, token=None):
     auth_header = {"Authorization": f"token {token}"} if token else {}
     async with ClientSession(headers=auth_header) as session:
-        logging.debug("beginning session")
+        logger.debug("beginning session")
         tasks = [get_ranking_data(session, repo) for repo in repos]
         ranked_repos = await asyncio.gather(*tasks)
+        logger.debug (ranked_repos)
     ranked_repos = sorted(ranked_repos, key=lambda x: x["stargazers"], reverse=True)
     return ranked_repos
 
