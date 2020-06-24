@@ -4,6 +4,7 @@ import sys
 import argparse
 import asyncio
 import json
+from os import environ
 from typing import List
 from pprint import pprint
 import logging
@@ -21,7 +22,11 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 def main():
     """Scrape and parse a github page. For all linked github projects, determine the number
-    of stars asynchronously. Order the results by decreasing number of stars."""
+    of stars asynchronously. Order the results by decreasing number of stars.
+    Authentication can be provided by the GITHUB_API_TOKEN environmental variable, or
+    preferentially via the --token argument. If not given, am unauthenticated query will
+    be attempted.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("url", type=str)
     parser.add_argument("--token", type=str)
@@ -32,9 +37,12 @@ def main():
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
+    token = environ.get("GITHUB_API_TOKEN", None) or args.token
+    logger.debug(f"Using authentication token: {token}")
+
     projects = get_linked_projects(args.url)
     repo_endpoints = get_repo_api_endpoints(projects)
-    ranking = asyncio.run(get_stargazer_counts(repo_endpoints, token=args.token))
+    ranking = asyncio.run(get_stargazer_counts(repo_endpoints, token=token))
     if args.limit:
         ranking = ranking[: args.limit]
     if args.open:
