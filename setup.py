@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="awsm-ranker",
-    version=read('VERSION').strip('\n'),
+    version=open('VERSION').read().strip('\n'),
     description="Ranks github repo entries on github pages from the 'Awesome' series",
     author="Paweł Sacawa",
     url='https://github.com/psacawa/awsm-ranker',
