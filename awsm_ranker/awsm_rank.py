@@ -19,6 +19,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
+forbidden_usernames = ["apps", "site", "topics"]
 
 def main():
     """Scrape and parse a github page. For all linked github projects, determine the number
@@ -85,7 +86,7 @@ def get_repo_api_endpoints(projects: List[re.Match]):
     return [
         f"https://api.github.com/repos/{group['user']}/{group['repo']}"
         for group in groups
-        if group["user"] not in ["apps", "site"]
+        if group["user"] not in forbidden_usernames
     ]
 
 
