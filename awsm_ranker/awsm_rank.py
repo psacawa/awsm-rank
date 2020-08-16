@@ -74,6 +74,7 @@ def get_linked_projects(url):
     soup = BeautifulSoup(response.text, "html.parser")
     links = soup.find_all("a")
     links = [a["href"] for a in links if a["href"]]
+    links = list (set(links))
     pattern = r"^https://github.com/(?P<user>\w+)/(?P<repo>[^/]+)$"
     prog = re.compile(pattern).search
     matches = map(prog, links)
