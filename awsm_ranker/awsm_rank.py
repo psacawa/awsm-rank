@@ -21,6 +21,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 forbidden_usernames = ["apps", "site", "topics"]
 
+
 def main():
     """Scrape and parse a github page. For all linked github projects, determine the number
     of stars asynchronously. Order the results by decreasing number of stars.
@@ -72,7 +73,7 @@ def get_linked_projects(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
     links = soup.find_all("a")
-    links = [a["href"] for a in links if a['href']]
+    links = [a["href"] for a in links if a["href"]]
     pattern = r"^https://github.com/(?P<user>\w+)/(?P<repo>[^/]+)$"
     prog = re.compile(pattern).search
     matches = map(prog, links)
@@ -94,7 +95,7 @@ async def get_ranking_data(session: ClientSession, repo_url):
     """Get individual repos data"""
     logger.debug(f"beginning request to {repo_url}")
     try:
-        async with session.get(repo_url,) as response:
+        async with session.get(repo_url) as response:
             logger.debug(f"get response to {repo_url}")
             data = await response.text()
             data = json.loads(data)
@@ -105,7 +106,7 @@ async def get_ranking_data(session: ClientSession, repo_url):
                 "url": data["html_url"],
             }
     except KeyError as e:
-        logger.error(f"Response malformed at {repo_url}- authentication failed?")
+        logger.error(f"Response malformed at {repo_url} - {data}")
     except ClientError:
         logger.error(f"Request failed at {repo_url}")
 
@@ -116,6 +117,7 @@ async def get_stargazer_counts(repos, token=None):
         logger.debug("beginning session")
         tasks = [get_ranking_data(session, repo) for repo in repos]
         ranked_repos = await asyncio.gather(*tasks)
+        ranked_repos = [r for r in ranked_repos if r and "stargazers" in r]
         logger.debug(ranked_repos)
     ranked_repos = sorted(ranked_repos, key=lambda x: x["stargazers"], reverse=True)
     return ranked_repos
