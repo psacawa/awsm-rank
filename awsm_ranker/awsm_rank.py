@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3
 import re
 import sys
 import argparse
@@ -15,7 +15,7 @@ import requests
 from bs4 import BeautifulSoup
 from tabulate import tabulate
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
@@ -75,7 +75,7 @@ def get_linked_projects(url):
     links = soup.find_all("a")
     links = [a["href"] for a in links if "href" in a.attrs]
     links = list (set(links))
-    pattern = r"^https://github.com/(?P<user>\w+)/(?P<repo>[^/]+)$"
+    pattern = r"^https://github.com/(?P<user>[\w-]+)/(?P<repo>[\w-]+)$"
     prog = re.compile(pattern).search
     matches = map(prog, links)
     repos = list(filter(None, matches))
