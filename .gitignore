@@ -1,8 +1,10 @@
 *.swp
 *.json
 __pycache__
+*.pyc
 venv
 *.egg-info
 .vscode
 build
 dist
+.python-version

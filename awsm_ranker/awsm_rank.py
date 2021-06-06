@@ -9,6 +9,7 @@ from typing import List
 from pprint import pprint
 import logging
 import subprocess
+from urllib.parse import urlparse
 
 from aiohttp import ClientSession, ClientError
 import requests

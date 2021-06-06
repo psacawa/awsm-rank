@@ -11,4 +11,10 @@ setup(
     entry_points={
         "console_scripts": ["awsm-rank = awsm_ranker.awsm_rank:main"]
     },
+    install_requires = [
+        "aiohttp",
+        "bs4",
+        "tabulate",
+        "requests",
+    ]
 )
