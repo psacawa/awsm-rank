@@ -9,7 +9,7 @@ setup(
     url='https://github.com/psacawa/awsm-rank',
     packages=find_packages(),
     entry_points={
-        "console_scripts": ["awsm-rank = awsm_ranker.awsm_rank:main"]
+        "console_scripts": ["awsm-rank = awsm_rank.awsm_rank:main"]
     },
     install_requires = [
         "aiohttp",
