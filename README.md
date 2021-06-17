@@ -1,7 +1,6 @@
 ## awsm-rank
 
-
-![pypi](https://github.com/psacawa/awsm-rank/workflows/python-publish.yml/badge.svg)
+![pypi](https://github.com/psacawa/awsm-rank/actions/workflows/python-publish.yml/badge.svg)
 
 A simple script that searches a web page for all linked Github repositories, and ranks them by number of stars. Use it on the pages from the **awesome** series of pages, or other pages listing open source projects.
 
