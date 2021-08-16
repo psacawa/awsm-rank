@@ -16,5 +16,6 @@ setup(
         "bs4",
         "tabulate",
         "requests",
+        "shtab",
     ]
 )

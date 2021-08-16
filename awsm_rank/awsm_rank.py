@@ -10,6 +10,8 @@ from pprint import pprint
 import logging
 import subprocess
 from urllib.parse import urlparse
+import webbrowser
+import shtab
 
 from aiohttp import ClientSession, ClientError
 import requests
@@ -22,6 +24,17 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 forbidden_usernames = ["apps", "site", "topics"]
 
+def get_parser():
+    """ Generate ArgumentParser object """
+    parser = argparse.ArgumentParser()
+    #  shell completions with shtab
+    shtab.add_argument_to(parser, ["-s", "--print-completion"]) 
+    parser.add_argument("url", type=str)
+    parser.add_argument("--token", type=str)
+    parser.add_argument("--limit", type=int)
+    parser.add_argument("--debug", dest="debug", action="store_true")
+    parser.add_argument("--open", dest="open", action="store_true")
+    return parser
 
 def main():
     """Scrape and parse a github page. For all linked github projects, determine the number
@@ -30,12 +43,7 @@ def main():
     preferentially via the --token argument. If not given, am unauthenticated query will
     be attempted.
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("url", type=str)
-    parser.add_argument("--token", type=str)
-    parser.add_argument("--limit", type=int)
-    parser.add_argument("--debug", dest="debug", action="store_true")
-    parser.add_argument("--open", dest="open", action="store_true")
+    parser = get_parser()
     args = parser.parse_args()
     if args.debug:
         logger.setLevel(logging.DEBUG)
@@ -64,9 +72,8 @@ def print_ranking(ranking):
 def open_urls(ranking):
     """Open the urls in the ranking in firefox. Add option to choose the web browser?"""
     urls = [item["url"] for item in ranking]
-    firefox_cmd = "firefox".split() + urls
-    logger.debug(f"Executing: {' '.join (firefox_cmd)}")
-    subprocess.run(firefox_cmd)
+    for url in urls:
+        webbrowser.open_new_tab(url)
 
 
 def get_linked_projects(url):
@@ -75,14 +82,18 @@ def get_linked_projects(url):
     soup = BeautifulSoup(response.text, "html.parser")
     links = soup.find_all("a")
     links = [a["href"] for a in links if "href" in a.attrs]
-    links = list (set(links))
-    pattern = r"^https://github.com/(?P<user>[\w-]+)/(?P<repo>[\w-]+)$"
-    prog = re.compile(pattern).search
-    matches = map(prog, links)
+    links = [get_repo(url) for url in links] 
+    links = [url for url in links if url]
+
     repos = list(filter(None, matches))
     return repos
 
+def get_repo(url):
+    url_struct =  urlparse (url)
 
+
+
+#  need different interftace
 def get_repo_api_endpoints(projects: List[re.Match]):
     """ Transform a project URL into an API repo endpoint"""
     groups = [project.groupdict() for project in projects]
