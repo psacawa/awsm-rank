@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
-import re
-import sys
 import argparse
 import asyncio
 import json
-from os import environ
-from typing import List
-from pprint import pprint
 import logging
+import re
 import subprocess
-from urllib.parse import urlparse
+import sys
+import typing
 import webbrowser
-import shtab
+from os import environ
+from pprint import pprint
+from typing import List
+from urllib.parse import urlparse
 
-from aiohttp import ClientSession, ClientError
 import requests
+import shtab
+from aiohttp import ClientError, ClientSession
 from bs4 import BeautifulSoup
 from tabulate import tabulate
 
@@ -22,19 +23,21 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-forbidden_usernames = ["apps", "site", "topics"]
+GITHUB_TOPLEVEL_PATH_BLACKLIST = ["apps", "site", "topics"]
+
 
 def get_parser():
-    """ Generate ArgumentParser object """
+    """Generate ArgumentParser object"""
     parser = argparse.ArgumentParser()
     #  shell completions with shtab
-    shtab.add_argument_to(parser, ["-s", "--print-completion"]) 
+    shtab.add_argument_to(parser, ["-s", "--print-completion"])
     parser.add_argument("url", type=str)
     parser.add_argument("--token", type=str)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--debug", dest="debug", action="store_true")
     parser.add_argument("--open", dest="open", action="store_true")
     return parser
+
 
 def main():
     """Scrape and parse a github page. For all linked github projects, determine the number
@@ -51,8 +54,7 @@ def main():
     token = environ.get("GITHUB_API_TOKEN", None) or args.token
     logger.debug(f"Using authentication token: {token}")
 
-    projects = get_linked_projects(args.url)
-    repo_endpoints = get_repo_api_endpoints(projects)
+    repo_endpoints = get_repo_api_endpoints(args.url)
     ranking = asyncio.run(get_stargazer_counts(repo_endpoints, token=token))
     if args.limit:
         ranking = ranking[: args.limit]
@@ -76,32 +78,29 @@ def open_urls(ranking):
         webbrowser.open_new_tab(url)
 
 
-def get_linked_projects(url):
-    """Get github projects linked a given webpage"""
-    response = requests.get(url)
+def get_repo_api_endpoints(main_url: str):
+    """Get github projects linked in a given webpage"""
+    #  get list of links
+    response = requests.get(main_url)
     soup = BeautifulSoup(response.text, "html.parser")
-    links = soup.find_all("a")
-    links = [a["href"] for a in links if "href" in a.attrs]
-    links = [get_repo(url) for url in links] 
-    links = [url for url in links if url]
+    link_tags = soup.find_all("a")
+    links: List[str] = [a["href"] for a in link_tags if "href" in a.attrs]
 
-    repos = list(filter(None, matches))
-    return repos
+    #  filter them
+    repo_links: List[str] = []
+    for link in links:
+        url = urlparse(link)
+        match = re.match(r"^/(?P<user>[\w-]+)/(?P<user>[\w-]+)/?$", url.path)
+        if url.hostname not in ["github.com", None]:
+            logger.info(f"Skipping non-Github URL {link}")
+            continue
+        if match is None or match.group("user") in GITHUB_TOPLEVEL_PATH_BLACKLIST:
+            logger.info(f"Skipping non-repo Github URL {link}")
+            continue
 
-def get_repo(url):
-    url_struct =  urlparse (url)
+            url.hostname = "api.github.com"
 
-
-
-#  need different interftace
-def get_repo_api_endpoints(projects: List[re.Match]):
-    """ Transform a project URL into an API repo endpoint"""
-    groups = [project.groupdict() for project in projects]
-    return [
-        f"https://api.github.com/repos/{group['user']}/{group['repo']}"
-        for group in groups
-        if group["user"] not in forbidden_usernames
-    ]
+    return repo_links
 
 
 async def get_ranking_data(session: ClientSession, repo_url):
@@ -119,7 +118,7 @@ async def get_ranking_data(session: ClientSession, repo_url):
                 "url": data["html_url"],
             }
     except KeyError as e:
-        logger.error(f"Response malformed at {repo_url} - {data}")
+        logger.error(f"Response malformed at {repo_url}")
     except ClientError:
         logger.error(f"Request failed at {repo_url}")
 
